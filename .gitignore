@@ -1,0 +1,10 @@
+node_modules
+
+# prod distribution
+/dist
+
+# Parcel builds
+.cache
+
+# Webstorm
+.idea
