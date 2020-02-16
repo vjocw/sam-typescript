@@ -1,12 +1,16 @@
 {
   "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
     "lib": ["es2015", "dom"],
     "declaration": true,
-    "outDir": "dist",
+    "outDir": "lib",
     "esModuleInterop": true,
     "jsx": "react",
+    "strict": true,
     "strictPropertyInitialization": true,
     "strictNullChecks": true
   },
-  "exclude": ["node_modules", "dist"]
+  "include": ["src", "random-id.d.ts"],
+  "exclude": ["node_modules", "lib","dist", "example"]
 }
