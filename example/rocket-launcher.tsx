@@ -101,6 +101,7 @@ const sam = new SAM<RocketLauncherModel, AllActions, AllProposals, AllStates>({
         case 'abort':
           return new AbortProposal();
         case 'continue-countdown':
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           return new DecrementCountProposal();
         case 'reset-countdown':
           return new ResetCountdownProposal();
@@ -191,7 +192,7 @@ function represent({ model, state }: { model: RocketLauncherModel; state: AllSta
     case 'ready':
       representation = (
         <div>
-          <div>READY TO LAUNCH {model.counter}</div>
+          <div>ready to launch: {model.counter}</div>
           <button onClick={() => sam.execute({ action: new StartCountdownAction() })}>LAUNCH BUTTON!</button>
         </div>
       );
