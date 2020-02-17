@@ -171,17 +171,17 @@ class SAMLoopHistory<
     snapshot: SAMStepSnapshot<MODEL_TYPE, PROPOSAL_TYPE, ALL_ACTION_PARAM_TYPE, ALL_STATES>;
     session: SAMLoopSession;
   }) {
-    const stack = stackTrace.get();
-    const history = {
-      snapshot: mutationProtection(snapshot),
-      session,
-      id: generateUniqueID(),
-      timestamp: new Date(),
-      callstack: stack,
-    };
-    this.histories.push(history);
-
     if (this.settings && this.settings.type === 'debug') {
+      const stack = stackTrace.get();
+      const history = {
+        snapshot: mutationProtection(snapshot),
+        session,
+        id: generateUniqueID(),
+        timestamp: new Date(),
+        callstack: stack,
+      };
+      this.histories.push(history);
+
       this.printHistoryAsync({ history });
     }
   }
@@ -213,7 +213,7 @@ export class SAM<
   ALL_STATES extends SAMStateDefinition
 > {
   private subscriptions: Subscription<MODEL_TYPE, ALL_STATES>[];
-  private curStateDef: SAMState<MODEL_TYPE, ALL_ACTION_PARAM_TYPE, ALL_STATES>;
+  private currentStateDefinition: SAMState<MODEL_TYPE, ALL_ACTION_PARAM_TYPE, ALL_STATES>;
   private model: MODEL_TYPE;
   private globalHistories: SAMLoopHistory<MODEL_TYPE, PROPOSAL_TYPE, ALL_ACTION_PARAM_TYPE, ALL_STATES>;
   private readonly initialModel: MODEL_TYPE;
@@ -242,7 +242,7 @@ export class SAM<
       throw Error('Please pass in an initial model that evaluates to a State.');
     }
     this.initialState = mutationProtection(stateDef.state);
-    this.curStateDef = stateDef;
+    this.currentStateDefinition = stateDef;
 
     this.globalHistories.add({
       snapshot: {
@@ -280,18 +280,18 @@ export class SAM<
   };
 
   private blockAction = ({ action, session }: { action: ALL_ACTION_PARAM_TYPE; session: SAMLoopSession }) => {
-    if (this.curStateDef) {
-      const actionChecker = new ActionChecker(action, this.curStateDef);
+    if (this.currentStateDefinition) {
+      const actionChecker = new ActionChecker(action, this.currentStateDefinition);
       if (actionChecker.isActionDisallowed()) {
         this.globalHistories.add({
           snapshot: {
             type: 'disallow-action-proposal',
             action,
-            state: this.curStateDef.state,
+            state: this.currentStateDefinition.state,
           },
           session,
         });
-        throw Error(`Blocked action. "${action.id}" action blocked, given state "${this.curStateDef.state.id}".`);
+        throw Error(`Blocked action. "${action.id}" action blocked, given state "${this.currentStateDefinition.state.id}".`);
       }
     }
   };
@@ -382,13 +382,13 @@ export class SAM<
       });
       return;
     }
-    this.curStateDef = stateDef;
+    this.currentStateDefinition = stateDef;
 
     this.globalHistories.add({
       snapshot: {
         type: 'state',
         model: this.model,
-        state: this.curStateDef.state,
+        state: this.currentStateDefinition.state,
       },
       session,
     });
@@ -418,17 +418,17 @@ export class SAM<
   private afterNewState = ({ model, session }: { session: SAMLoopSession; model: MODEL_TYPE }) => {
     for (let subscription of this.subscriptions) {
       subscription.afterNewState({
-        state: this.curStateDef.state,
+        state: this.currentStateDefinition.state,
         model,
       });
     }
 
-    if (this.curStateDef.nextActionPredicate) {
-      const nextPredicate = this.curStateDef.nextActionPredicate({
+    if (this.currentStateDefinition.nextActionPredicate) {
+      const nextPredicate = this.currentStateDefinition.nextActionPredicate({
         model: mutationProtection(model),
       });
       if (nextPredicate) {
-        this.SAMLoop({ action: nextPredicate.action, session, fromState: this.curStateDef.state });
+        this.SAMLoop({ action: nextPredicate.action, session, fromState: this.currentStateDefinition.state });
       }
     }
   };
