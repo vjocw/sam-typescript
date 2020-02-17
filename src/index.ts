@@ -208,8 +208,8 @@ const mutationProtection = (o: any) => cloneDeep(o);
 
 export class SAM<
   MODEL_TYPE extends object,
-  PROPOSAL_TYPE extends SAMProposalDefinition,
   ALL_ACTION_PARAM_TYPE extends SAMActionRequestDefinition,
+  PROPOSAL_TYPE extends SAMProposalDefinition,
   ALL_STATES extends SAMStateDefinition
 > {
   private subscriptions: Subscription<MODEL_TYPE, ALL_STATES>[];

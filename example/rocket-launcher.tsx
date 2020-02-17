@@ -82,7 +82,7 @@ type AllStates = ReadyState | CountingState | LaunchedState | AbortedState;
 
 const COUNTER_MAX = 10;
 
-const sam = new SAM<RocketLauncherModel, AllProposals, AllActions, AllStates>({
+const sam = new SAM<RocketLauncherModel, AllActions, AllProposals, AllStates>({
   model: {
     counter: COUNTER_MAX,
     aborted: false,
@@ -94,7 +94,7 @@ const sam = new SAM<RocketLauncherModel, AllProposals, AllActions, AllStates>({
         case 'start-countdown':
           return new StartProposal();
         case 'decrement-count':
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           return new DecrementCountProposal();
         case 'launch':
           return new LaunchProposal();
@@ -180,7 +180,7 @@ const sam = new SAM<RocketLauncherModel, AllProposals, AllActions, AllStates>({
       },
     },
   ],
-  settings: { type: 'debug' },
+  // settings: { type: 'debug' },
   subscriptions: [{ afterNewState: represent }],
 });
 

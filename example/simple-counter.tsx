@@ -30,7 +30,7 @@ type AllStates = ShowCountState | MaxCountState;
 
 const COUNT_MAX = 10;
 
-const sam = new SAM<SimpleCounterModel, AllProposals, AllActions, AllStates>({
+const sam = new SAM<SimpleCounterModel, AllActions, AllProposals, AllStates>({
   model: {
     count: 0,
   },
