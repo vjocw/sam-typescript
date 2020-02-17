@@ -215,7 +215,7 @@ export class SAM<
   private subscriptions: Subscription<MODEL_TYPE, ALL_STATES>[];
   private currentStateDefinition: SAMState<MODEL_TYPE, ALL_ACTION_PARAM_TYPE, ALL_STATES>;
   private model: MODEL_TYPE;
-  private globalHistories: SAMLoopHistory<MODEL_TYPE, PROPOSAL_TYPE, ALL_ACTION_PARAM_TYPE, ALL_STATES>;
+  private globalHistory: SAMLoopHistory<MODEL_TYPE, PROPOSAL_TYPE, ALL_ACTION_PARAM_TYPE, ALL_STATES>;
   private readonly initialModel: MODEL_TYPE;
   private readonly initialState: ALL_STATES;
   constructor(
@@ -228,8 +228,8 @@ export class SAM<
     this.initialModel = mutationProtection(this.config.model);
 
     const session = new SAMLoopSession({ id: generateSessionID() });
-    this.globalHistories = new SAMLoopHistory({ settings: this.config.settings || null });
-    this.globalHistories.add({
+    this.globalHistory = new SAMLoopHistory({ settings: this.config.settings || null });
+    this.globalHistory.add({
       snapshot: {
         type: 'constructor-model',
         initialModel: this.config.model,
@@ -244,7 +244,7 @@ export class SAM<
     this.initialState = mutationProtection(stateDef.state);
     this.currentStateDefinition = stateDef;
 
-    this.globalHistories.add({
+    this.globalHistory.add({
       snapshot: {
         type: 'state',
         model: this.model,
@@ -283,7 +283,7 @@ export class SAM<
     if (this.currentStateDefinition) {
       const actionChecker = new ActionChecker(action, this.currentStateDefinition);
       if (actionChecker.isActionDisallowed()) {
-        this.globalHistories.add({
+        this.globalHistory.add({
           snapshot: {
             type: 'disallow-action-proposal',
             action,
@@ -307,7 +307,7 @@ export class SAM<
   }) => {
     this.blockAction({ action, session });
 
-    this.globalHistories.add({
+    this.globalHistory.add({
       snapshot: {
         type: 'action',
         action,
@@ -319,7 +319,7 @@ export class SAM<
     const proposal = await this.config.actions.createProposal({ action: mutationProtection(action) });
 
     if (!proposal) {
-      this.globalHistories.add({
+      this.globalHistory.add({
         snapshot: {
           type: 'no-proposal',
           action,
@@ -329,7 +329,7 @@ export class SAM<
       return;
     }
 
-    this.globalHistories.add({
+    this.globalHistory.add({
       snapshot: {
         type: 'proposal',
         action: action,
@@ -347,7 +347,7 @@ export class SAM<
     });
 
     if (!model) {
-      this.globalHistories.add({
+      this.globalHistory.add({
         snapshot: {
           type: 'no-model',
           model: this.model,
@@ -360,7 +360,7 @@ export class SAM<
     this.model = model;
 
     const modelDiff = jsonDiff(oldModel, model);
-    this.globalHistories.add({
+    this.globalHistory.add({
       snapshot: {
         type: 'mutation',
         oldModel: oldModel,
@@ -373,7 +373,7 @@ export class SAM<
     const stateDef = this.matchState({ model });
 
     if (!stateDef) {
-      this.globalHistories.add({
+      this.globalHistory.add({
         snapshot: {
           type: 'no-state',
           model: this.model,
@@ -384,7 +384,7 @@ export class SAM<
     }
     this.currentStateDefinition = stateDef;
 
-    this.globalHistories.add({
+    this.globalHistory.add({
       snapshot: {
         type: 'state',
         model: this.model,
