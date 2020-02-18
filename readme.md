@@ -10,7 +10,7 @@ See below for a simple counter example.
 
 For a slightly more complicated example, please see 'rocket-launcher.tsx' under the 'example' folder. 
 
-```
+```javascript
 import { SAM, SAMActionRequestDefinition, SAMProposalDefinition, SAMStateDefinition } from '../src/index';
 import React from 'react';
 import ReactDOM from 'react-dom';
