@@ -1,6 +1,6 @@
 {
   "name": "sam-typescript",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Scalable State Management",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
