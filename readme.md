@@ -1,38 +1,27 @@
 SAM Typescript 
 
-State Management made Scalable. 
+State Management made Scalable. Save yourself from state management hell. 
 
-Based on Jean-Jacques Dubray's SAM programming model (http://sam.js.org/). 
-
+Based on Jean-Jacques Dubray's SAM programming model (http://sam.js.org/). All credits go to him for this brilliant model. 
 For a Javascript implementation please see: https://www.npmjs.com/package/sam-pattern. 
 
-See below for a simple counter example. 
-
-For a slightly more complicated example, please see 'rocket-launcher.tsx' under the 'example' folder. 
+In SAM (State Action Model architecture), the following is the process.
 
 ```
-import { SAM, SAMActionRequestDefinition, SAMProposalDefinition, SAMStateDefinition } from '../src/index';
-import React from 'react';
-import ReactDOM from 'react-dom';
+Action -> Proposals -> Model Mutation -> State -> (Optionally) Next Action
+```
 
-// Model definition
-interface SimpleCounterModel {
-  count: number;
-}
+So let's create a simple counter state machine. A counter state machine can be in 2 conceptual states: when the machine is counting and when it is done. This can be expressed as: 
 
-// Action definition
-class ChangeCountAction implements SAMActionRequestDefinition {
-  readonly id = 'change-count-action';
-  constructor(readonly count: number) {}
-}
+```
+State = ShowCountState | MaxCountState
+```
 
-// Proposal Definition
-class ChangeCountProposal implements SAMProposalDefinition {
-  readonly id = 'change-count-proposal';
-  constructor(readonly count: number) {}
-}
+1. Define your states:
+Define your states as classes one property 'id' and as readonly. This is required. 
+```typescript
+import { SAMStateDefinition } from 'sam-typescript';
 
-// State definitions
 class ShowCountState implements SAMStateDefinition {
   readonly id = 'show-count';
 }
@@ -40,38 +29,66 @@ class ShowCountState implements SAMStateDefinition {
 class MaxCountState implements SAMStateDefinition {
   readonly id = 'max-count';
 }
-// End of State definitions
 
-type AllActions = ChangeCountAction;
-type AllProposals = ChangeCountProposal;
 type AllStates = ShowCountState | MaxCountState;
+```
 
-const COUNT_MAX = 10;
+2. Define your model:
+A model is the global object you will need to mutate. Define this in your typescript file using an interface. 
+```typescript
+interface SimpleCounterModel {
+  count: number;
+}
+```
 
-// start
-const sam = new SAM<SimpleCounterModel, AllActions, AllProposals, AllStates>({
-  model: { // pass in initial model
-    count: 0,
-  },
-  actions: {
-    // sam.execute({action}) will pass through here
-    async createProposal({ action }) {
-      switch (action.id) {
-        case 'change-count-action':
-          return new ChangeCountProposal(action.count);
-      }
-    },
-  },
-  // all proposals will pass through here.
-  presenter: ({ model, proposal }) => {
-    if (proposal.id === 'change-count-proposal' && proposal.count >= 0 && proposal.count <= COUNT_MAX) {
-      model.count = proposal.count;
+3. Define your actions that you will call to create a proposal: 
+```typescript
+import { SAMActionRequestDefinition } from 'sam-typescript';
+
+class ChangeCountAction implements SAMActionRequestDefinition {
+  readonly id = 'change-count-action';
+  constructor(readonly count: number) {}
+}
+
+type AllActions = ChangeCountAction; // for this example, one is all of them.
+```
+
+4. Define any proposal that an action could create: 
+```typescript
+import { SAMProposalDefinition } from 'sam-typescript';
+
+class ChangeCountProposal implements SAMProposalDefinition {
+  readonly id = 'change-count-proposal';
+  constructor(readonly count: number) {}
+}
+
+type AllProposals = ChangeCountProposal;
+```
+5. Define a proposal creator
+```typescript
+const createProposal = async ({action}) => {
+    switch (action.id) {
+      case 'change-count-action':
+        return new ChangeCountProposal(action.count);
     }
+}
+```
 
-    return model;
-  },
-  // define states - sam-typescript will match for the first true 'isState'
-  stateDefinitions: [
+6. Create a model mutator
+This will accept a previous model and proposal and mutate the model as necessary. 
+```typescript
+const presenter = ({ model, proposal }) => {
+  if (proposal.id === 'change-count-proposal' && proposal.count >= 0 && proposal.count <= COUNT_MAX) {
+    model.count = proposal.count;
+  }
+
+  return model;
+}
+```
+
+7. Create dynamic state evaluation based on the current model:
+```typescript
+const stateDefinitions = () => [
     {
       state: { id: 'show-count' },
       isState: ({ model }) => {
@@ -84,15 +101,52 @@ const sam = new SAM<SimpleCounterModel, AllActions, AllProposals, AllStates>({
         return model.count === COUNT_MAX;
       },
     },
-  ],
-  // settings: { type: 'debug' },
-  subscriptions: [{ afterNewState: represent }], // after each state, define a function to run. 
+  ];
+```
+
+8. Finally instantiate the the SAM instance. 
+```typescript
+const COUNT_MAX = 10;
+
+const sam = new SAM<SimpleCounterModel, AllActions, AllProposals, AllStates>({
+  model: { 
+    count: 0,
+  },
+  actions: {
+    createProposal
+  },
+  presenter,
+  stateDefinitions,
+  subscriptions: [{ afterNewState: ({model,state}) => console.log(model,state)}],
+});
+```
+
+9. Call 'execute' to call any action:
+This will start the loop and end up with state. 
+```typescript
+sam.execute({ action: new ChangeCountAction(model.count - 1) })
+```
+
+Here is an example with React: 
+```typescript
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+// after setting up the above
+const sam = new SAM<SimpleCounterModel, AllActions, AllProposals, AllStates>({
+  model: { 
+    count: 0,
+  },
+  actions: {
+    createProposal
+  },
+  presenter,
+  stateDefinitions,
+  subscriptions: [{ afterNewState: represent }], // change subscription to call represent instead of 'console.log'. 
 });
 
-// the representation here is based on React but it can be anything from a graphical output to a server response.
 function represent({ model, state }: { model: SimpleCounterModel; state: AllStates }) {
   let representation;
-
   switch (state.id) {
     case 'show-count':
       representation = (
@@ -120,3 +174,4 @@ function represent({ model, state }: { model: SimpleCounterModel; state: AllStat
 ```
 
 
+For a slightly more complicated example, please see 'rocket-launcher.tsx' under the 'example' folder. 
